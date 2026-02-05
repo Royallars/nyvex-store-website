@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nyvex Network • Checkout</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <header class="topbar container">
+      <a class="brand" href="index.html"><img src="assets/nyvex-logo.svg" alt="Nyvex Network" /><span>Nyvex Network</span></a>
+      <nav>
+        <a href="index.html">Start</a><a href="ranks.html">Ränge</a><a href="coins.html">Coins, Tokens & Rechte</a>
+        <a class="cart-link active" href="checkout.html">Warenkorb <span id="cartCount">0</span></a>
+      </nav>
+    </header>
+
+    <main class="container section checkout-layout">
+      <section class="glass minecraft-frame">
+        <h1 class="page-title">Checkout</h1>
+        <p class="page-sub">Prüfe deine Produkte und bezahle sicher via Stripe.</p>
+        <div id="cartItems" class="cart-items"></div>
+        <div class="cart-total-row">
+          <span>Gesamt</span>
+          <strong id="cartTotal">0,00 €</strong>
+        </div>
+      </section>
+
+      <section class="glass minecraft-frame">
+        <h2>Zahlung & Account</h2>
+        <form id="checkoutForm" class="checkout-form">
+          <label>Minecraft Name<input required name="minecraft" placeholder="Dein Ingame-Name" /></label>
+          <label>E-Mail<input required type="email" name="email" placeholder="name@mail.de" /></label>
+          <button class="btn btn-secondary" type="submit">Bestellung prüfen</button>
+          <button id="payNowButton" class="btn btn-pay" type="button">Jetzt echt bezahlen (Stripe)</button>
+        </form>
+        <p id="checkoutMessage" class="checkout-message"></p>
+      </section>
+    </main>
+
+    <script src="store.js"></script>
+    <script>
+      renderCheckout();
+    </script>
+  </body>
+</html>

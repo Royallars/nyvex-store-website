@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nyvex Network • Ränge</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <header class="topbar container">
+      <a class="brand" href="index.html"><img src="assets/nyvex-logo.svg" alt="Nyvex Network" /><span>Nyvex Network</span></a>
+      <nav>
+        <a href="index.html">Start</a><a class="active" href="ranks.html">Ränge</a><a href="coins.html">Coins, Tokens & Rechte</a>
+        <a class="cart-link" href="checkout.html">Warenkorb <span id="cartCount">0</span></a>
+      </nav>
+    </header>
+
+    <main class="container section">
+      <h1 class="page-title">Ränge für Nyvex Network</h1>
+      <p class="page-sub">Aufsteigend von Knight bis King. Jeder Rang bringt zusätzliche Rechte auf mehreren Servern.</p>
+
+      <section class="card-grid"></section>
+
+      <section class="glass rights-table-wrap">
+        <h2>Rechte pro Server</h2>
+        <table class="rights-table">
+          <thead><tr><th>Rang</th><th>Survival</th><th>SkyBlock</th><th>PvP</th></tr></thead>
+          <tbody>
+            <tr><td>Knight</td><td>/kit knight, 2 homes</td><td>1 Insel-Upgrade</td><td>Starter-Kit</td></tr>
+            <tr><td>Lord</td><td>4 homes, /hat</td><td>2 Insel-Upgrades</td><td>/repair alle 2h</td></tr>
+            <tr><td>Paladin</td><td>/fly im Spawn</td><td>Spawner Rabatt</td><td>/kit pvp plus</td></tr>
+            <tr><td>Duke</td><td>/workbench, /ec</td><td>Insel-Boost</td><td>/repair alle 30m</td></tr>
+            <tr><td>King</td><td>Alle Rechte + /nick</td><td>Max Insel-Vorteile</td><td>Premium PvP Kit</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <script src="store.js"></script>
+    <script>
+      renderProducts('ranks', '.card-grid');
+    </script>
+  </body>
+</html>

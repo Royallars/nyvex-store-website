@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nyvex Network • Coins, Tokens & Rechte</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <header class="topbar container">
+      <a class="brand" href="index.html"><img src="assets/nyvex-logo.svg" alt="Nyvex Network" /><span>Nyvex Network</span></a>
+      <nav>
+        <a href="index.html">Start</a><a href="ranks.html">Ränge</a><a class="active" href="coins.html">Coins, Tokens & Rechte</a>
+        <a class="cart-link" href="checkout.html">Warenkorb <span id="cartCount">0</span></a>
+      </nav>
+    </header>
+
+    <main class="container section">
+      <h1 class="page-title">Coins, Tokens & Rechte</h1>
+      <p class="page-sub">Schnelle Aufladung für Economy und Prison plus praktische Rechte wie Fly und Repair.</p>
+      <section class="card-grid"></section>
+
+      <section class="glass feature-banner minecraft-frame">
+        <h2>Boost-Info</h2>
+        <p>Ab Rang Duke bekommst du +10% extra Coins bei jeder Aufladung. King erhält +25% Bonus.</p>
+      </section>
+    </main>
+
+    <script src="store.js"></script>
+    <script>
+      renderProducts('currencies', '.card-grid');
+    </script>
+  </body>
+</html>
