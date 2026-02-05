@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateTotalCents } from '@/lib/pricing';
+import { calculateRankUpgradePrice, calculateTotalCents } from '@/lib/pricing';
 
 describe('calculateTotalCents', () => {
   it('sums positive lines', () => {
@@ -9,5 +9,12 @@ describe('calculateTotalCents', () => {
         { productId: 'b', quantity: 1, unitCents: 300 }
       ])
     ).toBe(1300);
+  });
+});
+
+describe('calculateRankUpgradePrice', () => {
+  it('returns difference with floor at zero', () => {
+    expect(calculateRankUpgradePrice(499, 1499)).toBe(1000);
+    expect(calculateRankUpgradePrice(1499, 499)).toBe(0);
   });
 });

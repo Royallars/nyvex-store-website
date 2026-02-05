@@ -16,6 +16,7 @@ enum OrderStatus {
   PENDING
   PAID
   FAILED
+  REFUNDED
 }
 
 enum DeliveryStatus {
@@ -25,19 +26,29 @@ enum DeliveryStatus {
   FAILED
 }
 
+enum DeliveryType {
+  GRANT
+  REVOKE
+  DAILY_REWARD
+  SEASON_REWARD
+}
+
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
+  id            String               @id @default(cuid())
+  email         String               @unique
   passwordHash  String
   name          String?
   minecraftName String?
   minecraftUuid String?
-  role          UserRole  @default(USER)
+  role          UserRole             @default(USER)
   accounts      Account[]
   sessions      Session[]
   orders        Order[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  loyaltyWallet LoyaltyWallet?
+  dailyClaims   DailyClaim[]
+  seasonProgress UserSeasonProgress[]
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
 }
 
 model Account {
@@ -86,18 +97,38 @@ model Product {
   id               String            @id @default(cuid())
   categoryId       String
   category         Category          @relation(fields: [categoryId], references: [id])
+  subscriptionPlan SubscriptionPlan?
+  seasonPass       SeasonPass?
   name             String
   slug             String            @unique
   description      String
   perks            Json
+  metadata         Json?
   priceCents       Int
   currency         String            @default("EUR")
   iconPath         String
   active           Boolean           @default(true)
+  isPopular        Boolean           @default(false)
+  isBestValue      Boolean           @default(false)
   commandTemplates CommandTemplate[]
+  bundleItems      BundleItem[]      @relation("BundleItems")
+  includedInBundles BundleItem[]     @relation("BundleContains")
+  reviews          Review[]
   orderItems       OrderItem[]
+  dealItems        DealItem[]
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
+}
+
+model BundleItem {
+  id              String  @id @default(cuid())
+  bundleProductId String
+  childProductId  String
+  amount          Int     @default(1)
+  bundleProduct   Product @relation("BundleItems", fields: [bundleProductId], references: [id], onDelete: Cascade)
+  childProduct    Product @relation("BundleContains", fields: [childProductId], references: [id])
+
+  @@unique([bundleProductId, childProductId])
 }
 
 model CommandTemplate {
@@ -116,10 +147,20 @@ model Order {
   email           String
   minecraftName   String
   minecraftUuid   String?
+  giftedTo        String?
+  isGift          Boolean       @default(false)
+  affiliateCode   String?
+  affiliateId     String?
+  affiliate       AffiliateCreator? @relation(fields: [affiliateId], references: [id])
+  affiliateCommissionCents Int  @default(0)
+  promoCode       String?
+  loyaltyPointsEarned Int      @default(0)
   status          OrderStatus   @default(PENDING)
   stripeSessionId String?       @unique
   totalCents      Int
   currency        String        @default("EUR")
+  previousRank    String?
+  upgradedRank    String?
   items           OrderItem[]
   deliveryJobs    DeliveryJob[]
   createdAt       DateTime      @default(now())
@@ -140,10 +181,14 @@ model DeliveryJob {
   id            String         @id @default(cuid())
   orderId        String
   order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type           DeliveryType   @default(GRANT)
   status         DeliveryStatus @default(PENDING)
   retries        Int            @default(0)
+  maxAttempts    Int            @default(5)
   nextAttemptAt  DateTime       @default(now())
   lastError      String?
+  startedAt      DateTime?
+  finishedAt     DateTime?
   logs           DeliveryLog[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -153,13 +198,173 @@ model DeliveryLog {
   id            String      @id @default(cuid())
   deliveryJobId String
   job           DeliveryJob @relation(fields: [deliveryJobId], references: [id], onDelete: Cascade)
+  level         String      @default("info")
   message       String
   createdAt     DateTime    @default(now())
 }
 
+model Deal {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  startsAt    DateTime
+  endsAt      DateTime
+  discountPct Int
+  active      Boolean   @default(true)
+  items       DealItem[]
+}
+
+model DealItem {
+  id        String  @id @default(cuid())
+  dealId    String
+  productId String
+  deal      Deal    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([dealId, productId])
+}
+
+model SubscriptionPlan {
+  id                   String  @id @default(cuid())
+  productId             String  @unique
+  product               Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stripePriceId         String?
+  monthlyCoinsAmount    Int     @default(0)
+  monthlyTokensAmount   Int     @default(0)
+}
+
+model LoyaltyWallet {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points    Int     @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model DailyClaim {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  claimDate DateTime
+  streak    Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, claimDate])
+}
+
+model SeasonPass {
+  id         String  @id @default(cuid())
+  productId   String @unique
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  seasonName  String
+  startsAt    DateTime
+  endsAt      DateTime
+  levels      SeasonLevel[]
+  missions    SeasonMission[]
+  rewards     SeasonReward[]
+}
+
+model SeasonLevel {
+  id           String     @id @default(cuid())
+  seasonPassId String
+  seasonPass   SeasonPass @relation(fields: [seasonPassId], references: [id], onDelete: Cascade)
+  level        Int
+  xpRequired   Int
+
+  @@unique([seasonPassId, level])
+}
+
+model SeasonMission {
+  id           String     @id @default(cuid())
+  seasonPassId String
+  seasonPass   SeasonPass @relation(fields: [seasonPassId], references: [id], onDelete: Cascade)
+  name         String
+  missionType  String
+  frequency    String
+  target       Int
+  rewardXp     Int
+}
+
+model SeasonReward {
+  id           String     @id @default(cuid())
+  seasonPassId String
+  seasonPass   SeasonPass @relation(fields: [seasonPassId], references: [id], onDelete: Cascade)
+  level        Int
+  rewardType   String
+  rewardValue  String
+}
+
+model UserSeasonProgress {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seasonPassId String
+  seasonPass   SeasonPass @relation(fields: [seasonPassId], references: [id], onDelete: Cascade)
+  level        Int      @default(1)
+  xp           Int      @default(0)
+  completedMissions Json
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, seasonPassId])
+}
+
+model AffiliateCreator {
+  id             String  @id @default(cuid())
+  code           String  @unique
+  displayName    String
+  commissionPct  Int     @default(10)
+  orders         Order[]
+  payouts        AffiliatePayout[]
+}
+
+model AffiliatePayout {
+  id          String  @id @default(cuid())
+  creatorId   String
+  creator     AffiliateCreator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  amountCents Int
+  periodFrom  DateTime
+  periodTo    DateTime
+  paid        Boolean @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  productId  String?
+  product    Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  authorName String
+  rating     Int
+  quote      String
+  isFeatured Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+model FraudBlocklist {
+  id         String   @id @default(cuid())
+  type       String
+  value      String   @unique
+  reason     String
+  createdAt  DateTime @default(now())
+}
+
+model WebhookLog {
+  id          String   @id @default(cuid())
+  source      String
+  eventType   String
+  signatureOk Boolean
+  payload     Json
+  createdAt   DateTime @default(now())
+}
+
+model ReplayNonce {
+  id         String   @id @default(cuid())
+  nonce      String   @unique
+  createdAt  DateTime @default(now())
+}
+
 model AuditLog {
   id        String   @id @default(cuid())
-  actorId    String?
+  actorId   String?
   action    String
   payload   Json
   createdAt DateTime @default(now())

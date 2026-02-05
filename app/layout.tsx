@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <CartProvider>
           <header className="sticky top-0 z-30 border-b border-purple-500/30 bg-[#0a0616]/90 backdrop-blur">
-            <div className="mx-auto flex w-[min(1200px,95%)] items-center justify-between py-4">
+            <div className="mx-auto flex w-[min(1200px,95%)] flex-wrap items-center justify-between gap-2 py-4">
               <Link href="/" className="flex items-center gap-3 font-bold">
                 <img src="/icons/products/king.svg" alt="logo" className="h-10 w-10 rounded" />
                 <div>
@@ -28,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </Link>
               <nav className="flex gap-2 text-sm">
                 <Link href="/shop" className="rounded-lg border border-purple-400/40 px-3 py-1">Shop</Link>
+                <Link href="/checkout" className="rounded-lg border border-purple-400/40 px-3 py-1">Checkout</Link>
                 <Link href="/account" className="rounded-lg border border-purple-400/40 px-3 py-1">Account</Link>
                 <Link href="/admin" className="rounded-lg border border-purple-400/40 px-3 py-1">Admin</Link>
               </nav>
