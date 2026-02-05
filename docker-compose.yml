@@ -5,3 +5,25 @@ services:
       - .env
     ports:
       - "4173:4173"
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: nyvex
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    command: sh -c "npm run prisma:generate && npx prisma migrate deploy && npm run prisma:seed && npm start"
+
+volumes:
+  pgdata:

@@ -15,6 +15,7 @@
       <a class="brand" href="index.html"><img src="assets/nyvex-logo.svg" alt="Nyvex Network" /><span>Nyvex Network</span></a>
       <nav>
         <a href="index.html">Start</a><a href="ranks.html">Ränge</a><a href="coins.html">Coins, Tokens & Rechte</a>
+        <a href="index.html">Start</a><a href="ranks.html">Ränge</a><a href="coins.html">Coins & Cash</a>
         <a class="cart-link active" href="checkout.html">Warenkorb <span id="cartCount">0</span></a>
       </nav>
     </header>
@@ -23,6 +24,7 @@
       <section class="glass minecraft-frame">
         <h1 class="page-title">Checkout</h1>
         <p class="page-sub">Prüfe deine Produkte und bezahle sicher via Stripe.</p>
+        <p class="page-sub">Prüfe deine Produkte und bezahle sicher.</p>
         <div id="cartItems" class="cart-items"></div>
         <div class="cart-total-row">
           <span>Gesamt</span>
@@ -38,6 +40,18 @@
           <button class="btn btn-secondary" type="submit">Bestellung prüfen</button>
           <button id="payNowButton" class="btn btn-pay" type="button">Jetzt echt bezahlen (Stripe)</button>
         </form>
+          <label>Zahlungsart
+            <select name="payment" required>
+              <option value="">Bitte wählen</option>
+              <option value="stripe">Kreditkarte (Stripe)</option>
+              <option value="paypal">PayPal (demnächst)</option>
+            </select>
+          </label>
+          <button class="btn btn-primary" type="submit">Bestellung erstellen</button>
+        </form>
+
+        <button id="payNowButton" class="btn btn-pay">Jetzt echt bezahlen (Stripe)</button>
+        <p class="tiny-note">Hinweis: Für Live-Zahlungen muss der Server mit gültigem Stripe Secret Key gestartet werden.</p>
         <p id="checkoutMessage" class="checkout-message"></p>
       </section>
     </main>

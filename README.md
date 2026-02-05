@@ -1,48 +1,91 @@
-# Nyvex Network Store (Node.js + HTML)
+# Nyvex Network Store (Production-style)
 
-Minecraft Shop für **Nyvex Network** (play.nyvex.org) als klassisches Node.js Deployment mit statischen HTML/CSS/JS Seiten.
+Kompletter Next.js Shop für **play.nyvex.org** (Minecraft 1.21.x) mit 3D Hero, Stripe Checkout, Delivery Queue und Admin-Funktionen.
 
 ## Stack
-- Node.js + Express
-- HTML + CSS + Vanilla JavaScript
-- Stripe Checkout API (optional, per ENV aktiv)
+- Next.js App Router + TypeScript + TailwindCSS
+- React Three Fiber + postprocessing Bloom + framer-motion
+- Prisma + PostgreSQL
+- NextAuth (Credentials, Discord optional)
+- Stripe Checkout + Webhooks
+- Email via Resend oder Nodemailer
+- Optional Redis cache (fallback in-memory)
 
-## Seiten
-- `index.html` – Startseite + Netzwerkbeschreibung
-- `ranks.html` – Rang-Shop (Knight bis King)
-- `coins.html` – Coins / Ingame-Geld
-- `checkout.html` – Warenkorb + Checkout-Form
-- `success.html` – Payment Erfolgsseite
+## Core Features
+- 3D animierte Landing Hero (reduced-motion fallback)
+- Live server status widget + testimonials + FAQ/Guarantee
+- Shop mit Kategorien, Suche, Filter, Sort, Produktdetail, Cart, Checkout
+- Gift Orders, Promo/Creator Code Inputs, Upsell order bump
+- Rank upgrade hint (difference pricing)
+- Flash Deal Banner mit Countdown
+- Loyalty Punkte (1€ = 10 Punkte)
+- Daily Reward Claim + Streak + Delivery Job
+- Season Pass basic missions/progress
+- Delivery Pull/Ack API mit HMAC + replay protection (timestamp + nonce)
+- Retry/Backoff + Logs + Discord Alerts bei Delivery-Fehlern
+- Admin: products/commands editierbar, refund->revoke, monitoring, affiliate CSV export
 
-## Lokal starten
+## Commands (ohne führenden Slash)
+- Ranks (LuckPerms):
+  - `lp user {player} parent set knight`
+  - `lp user {player} parent set lord`
+  - `lp user {player} parent set paladin`
+  - `lp user {player} parent set duke`
+  - `lp user {player} parent set king`
+- Coins:
+  - `coins add {player} {amount}`
+- Prison Tokens:
+  - `prison tokens add {player} {amount}`
+- Permissions:
+  - `lp user {player} permission set essentials.fly true`
+  - `lp user {player} permission set essentials.repair true`
+
+## Setup lokal
+1. `cp .env.example .env`
+2. `npm install`
+3. `npm run prisma:generate`
+4. `npx prisma migrate dev --name init`
+5. `npm run prisma:seed`
+6. `npm run dev`
+
+## Docker
 ```bash
-npm install
-npm run start
+docker-compose up --build
 ```
-App läuft standardmäßig auf `http://localhost:4173`.
 
-## Entwicklung
+## Stripe Webhook lokal
 ```bash
-npm run dev
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+```
+`STRIPE_WEBHOOK_SECRET` in `.env` übernehmen.
+
+## Delivery Plugin Spec
+### Pull
+- Endpoint: `POST /api/delivery/pull`
+- Header: `x-nyvex-signature: <hex hmac sha256 over raw body>`
+- Body:
+```json
+{ "limit": 10, "timestamp": 1710000000000, "nonce": "random-unique-id" }
+```
+- Response enthält commands, bereits mit `{player}` und `{amount}` ersetzt.
+
+### Ack
+- Endpoint: `POST /api/delivery/ack`
+- Header: `x-nyvex-signature`
+- Body:
+```json
+{ "jobId": "...", "success": true, "log": "optional", "timestamp": 1710000000000, "nonce": "random-unique-id" }
 ```
 
-## Stripe aktivieren (echte Zahlung)
-Lege eine `.env` Datei an:
-```env
-PORT=4173
-PUBLIC_URL=http://localhost:4173
-STRIPE_SECRET_KEY=sk_test_xxx
-```
+## Tests
+- pricing calc
+- upgrade proration calc
+- HMAC verify
+- webhook signature helper verify (HMAC based unit)
 
-Dann über den Button **„Jetzt echt bezahlen“** im Checkout wird eine echte Stripe Session erzeugt.
-
-## Docker Deployment (Node.js)
-```bash
-docker compose up --build
-```
-Danach ist der Shop auf `http://localhost:4173` erreichbar.
-
-
-## Hinweise
-- Komplette Laufzeit ist Node.js + Express (kein Next.js Build nötig).
-- UI nutzt kontinuierliche CSS-Animationen (Hero, Grid, Cards, Icons, Rahmen).
+## Security
+- Zod validation
+- Stripe webhook signature verification
+- HMAC + replay protection via timestamp/nonce
+- rate limits checkout/gift/daily/delivery
+- fraud blocklist (mc name / ip / uuid)

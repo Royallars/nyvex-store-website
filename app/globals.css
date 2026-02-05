@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-[#090512] text-slate-100;
+  background-image: radial-gradient(circle at top, #1c1140, #090512 45%);
+}
+
+.pixel-title {
+  font-family: 'Press Start 2P', monospace;
+}
+
+.card {
+  @apply rounded-2xl border border-purple-500/30 bg-[#111029]/80 backdrop-blur shadow-[0_0_30px_rgba(124,58,237,.15)];
+}
