@@ -14,6 +14,7 @@
     <header class="topbar container">
       <a class="brand" href="index.html"><img src="assets/nyvex-logo.svg" alt="Nyvex Network" /><span>Nyvex Network</span></a>
       <nav>
+        <a href="index.html">Start</a><a href="ranks.html">Ränge</a><a href="coins.html">Coins, Tokens & Rechte</a>
         <a href="index.html">Start</a><a href="ranks.html">Ränge</a><a href="coins.html">Coins & Cash</a>
         <a class="cart-link active" href="checkout.html">Warenkorb <span id="cartCount">0</span></a>
       </nav>
@@ -22,6 +23,7 @@
     <main class="container section checkout-layout">
       <section class="glass minecraft-frame">
         <h1 class="page-title">Checkout</h1>
+        <p class="page-sub">Prüfe deine Produkte und bezahle sicher via Stripe.</p>
         <p class="page-sub">Prüfe deine Produkte und bezahle sicher.</p>
         <div id="cartItems" class="cart-items"></div>
         <div class="cart-total-row">
@@ -35,6 +37,9 @@
         <form id="checkoutForm" class="checkout-form">
           <label>Minecraft Name<input required name="minecraft" placeholder="Dein Ingame-Name" /></label>
           <label>E-Mail<input required type="email" name="email" placeholder="name@mail.de" /></label>
+          <button class="btn btn-secondary" type="submit">Bestellung prüfen</button>
+          <button id="payNowButton" class="btn btn-pay" type="button">Jetzt echt bezahlen (Stripe)</button>
+        </form>
           <label>Zahlungsart
             <select name="payment" required>
               <option value="">Bitte wählen</option>

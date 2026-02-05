@@ -1,20 +1,58 @@
 const products = {
   ranks: [
-    { id: 'knight', name: 'Knight', price: 4.99, desc: 'Basis-Rang mit Starter-Rechten.', perks: ['2 Homes', '/kit knight', 'Graues Prefix'] },
-    { id: 'lord', name: 'Lord', price: 9.99, desc: 'Für aktive Spieler mit mehr Komfort.', perks: ['4 Homes', '/hat', 'Grünes Prefix'] },
-    { id: 'paladin', name: 'Paladin', price: 14.99, desc: 'Starker Mid-Tier Rang mit Extras.', perks: ['/fly am Spawn', '6 Homes', 'Blaues Prefix'] },
-    { id: 'duke', name: 'Duke', price: 24.99, desc: 'High-Tier mit starken Vorteilen.', perks: ['/ec + /workbench', '10 Homes', 'Goldenes Prefix'] },
-    { id: 'king', name: 'King', price: 39.99, desc: 'Bester Rang auf Nyvex Network.', perks: ['/nick', '15 Homes', 'Cyan Prefix + Partikel'], featured: true }
+    {
+      id: 'knight',
+      name: 'Knight',
+      price: 4.99,
+      desc: 'Basis-Rang mit Starter-Rechten.',
+      perks: ['2 Homes', '/kit knight', 'Graues Prefix'],
+      icon: '/public/icons/products/knight.svg'
+    },
+    {
+      id: 'lord',
+      name: 'Lord',
+      price: 9.99,
+      desc: 'Für aktive Spieler mit mehr Komfort.',
+      perks: ['4 Homes', '/hat', 'Grünes Prefix'],
+      icon: '/public/icons/products/lord.svg'
+    },
+    {
+      id: 'paladin',
+      name: 'Paladin',
+      price: 14.99,
+      desc: 'Starker Mid-Tier Rang mit Extras.',
+      perks: ['/fly am Spawn', '6 Homes', 'Blaues Prefix'],
+      icon: '/public/icons/products/paladin.svg'
+    },
+    {
+      id: 'duke',
+      name: 'Duke',
+      price: 24.99,
+      desc: 'High-Tier mit starken Vorteilen.',
+      perks: ['/ec + /workbench', '10 Homes', 'Goldenes Prefix'],
+      icon: '/public/icons/products/duke.svg'
+    },
+    {
+      id: 'king',
+      name: 'King',
+      price: 39.99,
+      desc: 'Bester Rang auf Nyvex Network.',
+      perks: ['/nick', '15 Homes', 'Cyan Prefix + Partikel'],
+      icon: '/public/icons/products/king.svg',
+      featured: true
+    }
   ],
   currencies: [
-    { id: 'coins-1k', name: '1.000 Coins', price: 2.99, desc: 'Perfekt für kleine Crate-Öffnungen.' },
-    { id: 'coins-5k', name: '5.000 Coins', price: 9.99, desc: 'Beliebtes Paket für Stammspieler.' },
-    { id: 'cash-100k', name: '100.000$ Ingame', price: 4.49, desc: 'Boost für deine Economy-Basis.' },
-    { id: 'cash-1m', name: '1.000.000$ Ingame', price: 14.99, desc: 'Direkt voll einsteigen auf allen Modi.' }
+    { id: 'coins-100k', name: '100.000 Coins', price: 7.99, desc: 'Perfekt für Crates und Auktionen.', icon: '/public/icons/products/coins-100k.svg' },
+    { id: 'coins-500k', name: '500.000 Coins', price: 24.99, desc: 'Beliebtes Paket für Stammspieler.', icon: '/public/icons/products/coins-500k.svg', featured: true },
+    { id: 'tokens-100', name: '100 Tokens', price: 2.99, desc: 'Extra Tokens für Prison Upgrades.', icon: '/public/icons/products/tokens-100.svg' },
+    { id: 'tokens-500', name: '500 Tokens', price: 10.99, desc: 'Großes Token Paket mit Rabatt.', icon: '/public/icons/products/tokens-500.svg' },
+    { id: 'perm-fly', name: 'Recht: Fly', price: 6.49, desc: 'Dauerhaftes Fly-Recht auf freigegebenen Welten.', icon: '/public/icons/products/perm-fly.svg' },
+    { id: 'perm-repair', name: 'Recht: Repair', price: 5.49, desc: 'Repariere Ausrüstung per Command.', icon: '/public/icons/products/perm-repair.svg' }
   ]
 };
 
-const cartKey = 'nyvex-cart-v3';
+const cartKey = 'nyvex-cart-v4';
 
 function euro(value) {
   return `${value.toFixed(2).replace('.', ',')} €`;
@@ -38,8 +76,7 @@ function addToCart(product) {
 }
 
 function removeFromCart(id) {
-  const cart = getCart().filter((item) => item.id !== id);
-  saveCart(cart);
+  saveCart(getCart().filter((item) => item.id !== id));
 }
 
 function updateQty(id, delta) {
@@ -57,13 +94,14 @@ function updateCartCount() {
 function renderProducts(category, selector) {
   updateCartCount();
   const mount = document.querySelector(selector);
-  if (!mount) return;
+  if (!mount || !products[category]) return;
 
   mount.innerHTML = products[category]
     .map(
       (p) => `
       <article class="glass product-card minecraft-frame ${p.featured ? 'featured' : ''}">
-        ${p.featured ? '<span class="tag">Best Value</span>' : ''}
+        ${p.featured ? '<span class="tag">Beliebt</span>' : ''}
+        <img class="product-icon" src="${p.icon}" alt="${p.name}" loading="lazy" />
         <h3>${p.name}</h3>
         <p>${p.desc}</p>
         ${p.perks ? `<ul>${p.perks.map((perk) => `<li>${perk}</li>`).join('')}</ul>` : ''}
@@ -76,8 +114,8 @@ function renderProducts(category, selector) {
 
   mount.querySelectorAll('button[data-id]').forEach((button) => {
     button.addEventListener('click', () => {
-      const categoryProducts = products[button.dataset.category];
-      const product = categoryProducts.find((entry) => entry.id === button.dataset.id);
+      const product = products[button.dataset.category]?.find((entry) => entry.id === button.dataset.id);
+      if (!product) return;
       addToCart(product);
       button.textContent = 'Hinzugefügt ✓';
       setTimeout(() => (button.textContent = 'In den Warenkorb'), 900);
@@ -112,7 +150,7 @@ function renderCheckout() {
   function paint() {
     const cart = getCart();
     if (!cart.length) {
-      cartItems.innerHTML = '<p class="empty">Dein Warenkorb ist leer. Gehe auf Ränge oder Coins & Cash.</p>';
+      cartItems.innerHTML = '<p class="empty">Dein Warenkorb ist leer. Gehe auf Ränge oder Coins, um Produkte hinzuzufügen.</p>';
       cartTotal.textContent = euro(0);
       return;
     }
@@ -153,14 +191,8 @@ function renderCheckout() {
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    const cart = getCart();
-    if (!cart.length) {
-      message.textContent = 'Bitte lege zuerst Produkte in den Warenkorb.';
-      return;
-    }
-
     const data = new FormData(form);
-    message.textContent = `Bestellung erstellt für ${data.get('minecraft')} (${data.get('email')}). Klicke jetzt auf "Jetzt echt bezahlen".`;
+    message.textContent = `Bestellung vorbereitet für ${data.get('minecraft')}. Klicke auf „Jetzt echt bezahlen“.`;
   });
 
   payNowButton.addEventListener('click', async () => {
@@ -173,21 +205,15 @@ function renderCheckout() {
     const data = new FormData(form);
     const minecraft = data.get('minecraft')?.trim();
     const email = data.get('email')?.trim();
-    const payment = data.get('payment');
 
-    if (!minecraft || !email || !payment) {
-      message.textContent = 'Bitte fülle Name, E-Mail und Zahlungsart aus.';
-      return;
-    }
-
-    if (payment !== 'stripe') {
-      message.textContent = 'Aktuell ist echte Zahlung über Stripe aktiv. PayPal folgt.';
+    if (!minecraft || !email) {
+      message.textContent = 'Bitte fülle Minecraft-Name und E-Mail aus.';
       return;
     }
 
     message.textContent = 'Stripe Checkout wird gestartet...';
     try {
-      await startStripeCheckout({ minecraft, email, payment });
+      await startStripeCheckout({ minecraft, email });
     } catch (error) {
       message.textContent = `Fehler: ${error.message}`;
     }
