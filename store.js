@@ -1,0 +1,225 @@
+const products = {
+  ranks: [
+    {
+      id: 'knight',
+      name: 'Knight',
+      price: 4.99,
+      desc: 'Basis-Rang mit Starter-Rechten.',
+      perks: ['2 Homes', '/kit knight', 'Graues Prefix'],
+      icon: '/public/icons/products/knight.svg'
+    },
+    {
+      id: 'lord',
+      name: 'Lord',
+      price: 9.99,
+      desc: 'Für aktive Spieler mit mehr Komfort.',
+      perks: ['4 Homes', '/hat', 'Grünes Prefix'],
+      icon: '/public/icons/products/lord.svg'
+    },
+    {
+      id: 'paladin',
+      name: 'Paladin',
+      price: 14.99,
+      desc: 'Starker Mid-Tier Rang mit Extras.',
+      perks: ['/fly am Spawn', '6 Homes', 'Blaues Prefix'],
+      icon: '/public/icons/products/paladin.svg'
+    },
+    {
+      id: 'duke',
+      name: 'Duke',
+      price: 24.99,
+      desc: 'High-Tier mit starken Vorteilen.',
+      perks: ['/ec + /workbench', '10 Homes', 'Goldenes Prefix'],
+      icon: '/public/icons/products/duke.svg'
+    },
+    {
+      id: 'king',
+      name: 'King',
+      price: 39.99,
+      desc: 'Bester Rang auf Nyvex Network.',
+      perks: ['/nick', '15 Homes', 'Cyan Prefix + Partikel'],
+      icon: '/public/icons/products/king.svg',
+      featured: true
+    }
+  ],
+  currencies: [
+    { id: 'coins-100k', name: '100.000 Coins', price: 7.99, desc: 'Perfekt für Crates und Auktionen.', icon: '/public/icons/products/coins-100k.svg' },
+    { id: 'coins-500k', name: '500.000 Coins', price: 24.99, desc: 'Beliebtes Paket für Stammspieler.', icon: '/public/icons/products/coins-500k.svg', featured: true },
+    { id: 'tokens-100', name: '100 Tokens', price: 2.99, desc: 'Extra Tokens für Prison Upgrades.', icon: '/public/icons/products/tokens-100.svg' },
+    { id: 'tokens-500', name: '500 Tokens', price: 10.99, desc: 'Großes Token Paket mit Rabatt.', icon: '/public/icons/products/tokens-500.svg' },
+    { id: 'perm-fly', name: 'Recht: Fly', price: 6.49, desc: 'Dauerhaftes Fly-Recht auf freigegebenen Welten.', icon: '/public/icons/products/perm-fly.svg' },
+    { id: 'perm-repair', name: 'Recht: Repair', price: 5.49, desc: 'Repariere Ausrüstung per Command.', icon: '/public/icons/products/perm-repair.svg' }
+  ]
+};
+
+const cartKey = 'nyvex-cart-v4';
+
+function euro(value) {
+  return `${value.toFixed(2).replace('.', ',')} €`;
+}
+
+function getCart() {
+  return JSON.parse(localStorage.getItem(cartKey) || '[]');
+}
+
+function saveCart(items) {
+  localStorage.setItem(cartKey, JSON.stringify(items));
+  updateCartCount();
+}
+
+function addToCart(product) {
+  const cart = getCart();
+  const found = cart.find((item) => item.id === product.id);
+  if (found) found.qty += 1;
+  else cart.push({ id: product.id, name: product.name, price: product.price, qty: 1 });
+  saveCart(cart);
+}
+
+function removeFromCart(id) {
+  saveCart(getCart().filter((item) => item.id !== id));
+}
+
+function updateQty(id, delta) {
+  const cart = getCart().map((item) => (item.id === id ? { ...item, qty: Math.max(1, item.qty + delta) } : item));
+  saveCart(cart);
+}
+
+function updateCartCount() {
+  const count = getCart().reduce((sum, item) => sum + item.qty, 0);
+  document.querySelectorAll('#cartCount').forEach((el) => {
+    el.textContent = count;
+  });
+}
+
+function renderProducts(category, selector) {
+  updateCartCount();
+  const mount = document.querySelector(selector);
+  if (!mount || !products[category]) return;
+
+  mount.innerHTML = products[category]
+    .map(
+      (p) => `
+      <article class="glass product-card minecraft-frame ${p.featured ? 'featured' : ''}">
+        ${p.featured ? '<span class="tag">Beliebt</span>' : ''}
+        <img class="product-icon" src="${p.icon}" alt="${p.name}" loading="lazy" />
+        <h3>${p.name}</h3>
+        <p>${p.desc}</p>
+        ${p.perks ? `<ul>${p.perks.map((perk) => `<li>${perk}</li>`).join('')}</ul>` : ''}
+        <p class="price">${euro(p.price)}</p>
+        <button class="btn btn-primary" data-id="${p.id}" data-category="${category}">In den Warenkorb</button>
+      </article>
+    `
+    )
+    .join('');
+
+  mount.querySelectorAll('button[data-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const product = products[button.dataset.category]?.find((entry) => entry.id === button.dataset.id);
+      if (!product) return;
+      addToCart(product);
+      button.textContent = 'Hinzugefügt ✓';
+      setTimeout(() => (button.textContent = 'In den Warenkorb'), 900);
+    });
+  });
+}
+
+async function startStripeCheckout(extraData) {
+  const cart = getCart();
+  if (!cart.length) throw new Error('Warenkorb ist leer.');
+
+  const response = await fetch('/api/create-checkout-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cart, ...extraData })
+  });
+
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || 'Checkout konnte nicht gestartet werden.');
+  window.location.href = payload.url;
+}
+
+function renderCheckout() {
+  updateCartCount();
+  const cartItems = document.querySelector('#cartItems');
+  const cartTotal = document.querySelector('#cartTotal');
+  const form = document.querySelector('#checkoutForm');
+  const message = document.querySelector('#checkoutMessage');
+  const payNowButton = document.querySelector('#payNowButton');
+  if (!cartItems || !cartTotal || !form || !message || !payNowButton) return;
+
+  function paint() {
+    const cart = getCart();
+    if (!cart.length) {
+      cartItems.innerHTML = '<p class="empty">Dein Warenkorb ist leer. Gehe auf Ränge oder Coins, um Produkte hinzuzufügen.</p>';
+      cartTotal.textContent = euro(0);
+      return;
+    }
+
+    cartItems.innerHTML = cart
+      .map(
+        (item) => `
+        <article class="cart-item">
+          <div>
+            <h4>${item.name}</h4>
+            <p>${euro(item.price)} pro Stück</p>
+          </div>
+          <div class="qty-controls">
+            <button data-action="minus" data-id="${item.id}">-</button>
+            <span>${item.qty}</span>
+            <button data-action="plus" data-id="${item.id}">+</button>
+            <button class="remove" data-action="remove" data-id="${item.id}">x</button>
+          </div>
+          <strong>${euro(item.price * item.qty)}</strong>
+        </article>
+      `
+      )
+      .join('');
+
+    cartItems.querySelectorAll('button[data-action]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const { action, id } = btn.dataset;
+        if (action === 'plus') updateQty(id, 1);
+        if (action === 'minus') updateQty(id, -1);
+        if (action === 'remove') removeFromCart(id);
+        paint();
+      });
+    });
+
+    const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    cartTotal.textContent = euro(total);
+  }
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    message.textContent = `Bestellung vorbereitet für ${data.get('minecraft')}. Klicke auf „Jetzt echt bezahlen“.`;
+  });
+
+  payNowButton.addEventListener('click', async () => {
+    const cart = getCart();
+    if (!cart.length) {
+      message.textContent = 'Bitte lege zuerst Produkte in den Warenkorb.';
+      return;
+    }
+
+    const data = new FormData(form);
+    const minecraft = data.get('minecraft')?.trim();
+    const email = data.get('email')?.trim();
+
+    if (!minecraft || !email) {
+      message.textContent = 'Bitte fülle Minecraft-Name und E-Mail aus.';
+      return;
+    }
+
+    message.textContent = 'Stripe Checkout wird gestartet...';
+    try {
+      await startStripeCheckout({ minecraft, email });
+    } catch (error) {
+      message.textContent = `Fehler: ${error.message}`;
+    }
+  });
+
+  paint();
+}
+
+updateCartCount();
