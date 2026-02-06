@@ -1,11 +1,11 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { URL } = require('url');
 const Stripe = require('stripe');
 
-const PORT = Number(process.env.PORT || 4173);
-const DOMAIN = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
+const HOST = process.env.HOST || '0.0.0.0';
+const PORT = Number(process.env.PORT || process.env.SERVER_PORT || 4173);
+const PUBLIC_URL = process.env.PUBLIC_URL;
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 if (!stripe) {
@@ -59,10 +59,44 @@ function readJsonBody(req) {
 }
 
 function safePathFromUrl(urlPathname) {
-  const normalized = path.normalize(urlPathname).replace(/^([.]{2}[/\\])+/, '');
+  let decoded;
+  try {
+    decoded = decodeURIComponent(urlPathname);
+  } catch {
+    return null;
+  }
+
+  const normalized = path.normalize(decoded).replace(/^([.]{2}[/\\])+/, '');
   const resolved = path.join(__dirname, normalized);
   if (!resolved.startsWith(__dirname)) return null;
   return resolved;
+}
+
+function getRequestPathname(req) {
+  const [pathname] = (req.url || '/').split('?');
+  return pathname || '/';
+}
+
+function getPublicBaseUrl(req) {
+  if (PUBLIC_URL) return PUBLIC_URL.replace(/\/$/, '');
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const protocol = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || 'http';
+  const host = req.headers.host || `localhost:${PORT}`;
+  return `${protocol}://${host}`;
+}
+
+function sendFileResponse(req, res, filePath) {
+  fs.readFile(filePath, (err, content) => {
+    if (err) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      return res.end('Not found');
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+    res.writeHead(200, { 'Content-Type': contentType });
+    return res.end(req.method === 'HEAD' ? '' : content);
+  });
 }
 
 function serveStatic(req, res, pathname) {
@@ -76,29 +110,18 @@ function serveStatic(req, res, pathname) {
   if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
     candidate = path.join(candidate, 'index.html');
   }
+
   if (!path.extname(candidate)) {
     const htmlCandidate = `${candidate}.html`;
-    if (fs.existsSync(htmlCandidate)) candidate = htmlCandidate;
-  }
-
-  fs.readFile(candidate, (err, content) => {
-    if (err) {
-      fs.readFile(path.join(__dirname, 'index.html'), (fallbackErr, fallbackContent) => {
-        if (fallbackErr) {
-          res.writeHead(404);
-          return res.end('Not found');
-        }
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        return res.end(fallbackContent);
-      });
-      return;
+    if (fs.existsSync(htmlCandidate)) {
+      candidate = htmlCandidate;
+      return sendFileResponse(req, res, candidate);
     }
 
-    const ext = path.extname(candidate).toLowerCase();
-    const contentType = mimeTypes[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': contentType });
-    res.end(content);
-  });
+    return sendFileResponse(req, res, path.join(__dirname, 'index.html'));
+  }
+
+  return sendFileResponse(req, res, candidate);
 }
 
 async function handleCreateCheckoutSession(req, res) {
@@ -136,13 +159,14 @@ async function handleCreateCheckoutSession(req, res) {
       };
     });
 
+    const baseUrl = getPublicBaseUrl(req);
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer_email: email,
       line_items: lineItems,
       payment_method_types: ['card'],
-      success_url: `${DOMAIN}/success.html`,
-      cancel_url: `${DOMAIN}/checkout.html`,
+      success_url: `${baseUrl}/success.html`,
+      cancel_url: `${baseUrl}/checkout.html`,
       metadata: { minecraft }
     });
 
@@ -153,11 +177,16 @@ async function handleCreateCheckoutSession(req, res) {
 }
 
 const server = http.createServer(async (req, res) => {
-  const requestUrl = new URL(req.url, DOMAIN);
-  const pathname = requestUrl.pathname;
+  const pathname = getRequestPathname(req);
 
   if (req.method === 'GET' && pathname === '/api/health') {
-    return sendJson(res, 200, { ok: true, service: 'nyvex-store', stripeConfigured: Boolean(stripe) });
+    return sendJson(res, 200, {
+      ok: true,
+      service: 'nyvex-store',
+      stripeConfigured: Boolean(stripe),
+      host: HOST,
+      port: PORT
+    });
   }
 
   if (req.method === 'POST' && pathname === '/api/create-checkout-session') {
@@ -171,6 +200,7 @@ const server = http.createServer(async (req, res) => {
   return sendJson(res, 405, { error: 'Method not allowed' });
 });
 
-server.listen(PORT, () => {
-  console.log(`[nyvex] Node.js Store läuft auf ${DOMAIN}`);
+server.listen(PORT, HOST, () => {
+  const publicInfo = PUBLIC_URL || `http://${HOST}:${PORT}`;
+  console.log(`[nyvex] Node.js Store läuft auf ${publicInfo}`);
 });
